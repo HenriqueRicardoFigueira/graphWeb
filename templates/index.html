@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+ <meta charset="utf-8">
+ <meta http-equiv="X-UA-Compatible" content="IE=edge">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>GitHub - Gormom</title>
+ <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+ <link rel="shortcut icon" href="{{ url_for('static', filename='database.ico') }}">
+</head>
+<body style="padding-top: 70px">
+    <!-- Modal -->
+    <div class="modal fade" id="delete-modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="modalLabel">Excluir Item</h4>
+                </div>
+                <div class="modal-body">Deseja realmente excluir este item? </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary">Sim</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">N&atilde;o</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+         <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+           <span class="sr-only">Toggle navigation</span>
+           <span class="icon-bar"></span>
+           <span class="icon-bar"></span>
+           <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/">Gormom - GitHub</a>
+         </div>
+         <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+
+          </ul>
+         </div>
+        </div>
+    </nav>
+    <div id="main" class="container-fluid">
+        <div id="main" class="container-fluid">
+            <div id="top" class="row">
+                <div class="col-md-2">
+                </div>
+             
+                <div class="col-md-8">
+                    <form action="/search" method="POST">    
+                        <div class="input-group h2">
+                            <span class="input-group-addon" id="sizing-addon2">github.com/</span>
+                            <input name="project" class="form-control" id="search" type="text" placeholder="Pesquisar Projeto">
+                            <span class="input-group-btn">
+                                <button class="btn btn-secondary" type="submit">
+                                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                                </button>
+                            </span>
+                        </div>
+                    </form>
+                </div>
+             
+                <div class="col-md-2">
+                </div>
+                
+            </div> <!-- /#top -->
+        
+            <hr />
+            <div id="list" class="row">
+ 
+                <div class="table-responsive col-md-12">
+                    <table class="table table-striped" cellspacing="0" cellpadding="0">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Cargo</th>
+                                <th class="actions">Options</th>
+                             </tr>
+                        </thead>
+                        <tbody>
+                            {% if (content_page is not defined) or (content_page|length == 0)%}
+                                <tr>
+                                    <td>No content in page</td>
+                                </tr>
+                            {% else %}
+                                {% for item in content_page %}
+                                <tr>
+                                    <td>{{item.name}}</td>
+                                    <td>{{item.colaborator}}</td>
+                                    <td class="actions">
+                                        <a class="btn btn-success btn-xs" href="/member/view/{{item.name}}" target="_blank">Visualizar</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+             
+                        </tbody>
+                     </table>
+             
+                 </div>
+             </div> <!-- /#list -->
+        
+             <div id="bottom" class="row">
+                <div class="col-md-12">             
+                </div>
+            </div> <!-- /#bottom -->
+        </div>  <!-- /#main -->
+    </div>
+
+
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+ <meta charset="utf-8">
+ <meta http-equiv="X-UA-Compatible" content="IE=edge">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>index</title>
+ <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+</head>
+
+    <body style="padding-top: 70px">
+        <div id="main" class="container">
+                <div class="col-md-2">
+                </div>
+                <div class="col-md-8">
+                        <div class="container-fluid" style="margin-top:150px">
+                            <form action="/search" method="POST">
+                                <div class="input-group">
+                                    <span class="input-group-addon" id="sizing-addon2">github.com/</span>
+                                    <input name="project" type="text" class="form-control">
+                                    <span class="input-group-btn">
+                                        <button type="submit" class="btn btn-group btn-secondary" target="_blank">Search</button>
+                                    </span>
+                                </div>
+                            </form>
+                        </div>
+                </div>
+                <div class="col-md-2">
+                </div>
+            </div>
+            
+            
+        <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    </body>
+</html>
