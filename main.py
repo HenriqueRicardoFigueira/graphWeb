@@ -309,11 +309,11 @@ def find():
         # createBD(user_steamID)
         content_page = graph(user_steamID)
         print content_page
-        return render_template('dashboard.html' ,content_page=content_page)
+        return render_template('dashboard.html',content_page=content_page)
     else:
         return "error"
 
 
 
 if __name__ == "__main__":
-    app.run(debug=False, threaded=True)
+    app.run(debug=False, threaded=False)
