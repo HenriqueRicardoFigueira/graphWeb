@@ -19,7 +19,6 @@ from joblib import Parallel, delayed
 from networkx.algorithms.approximation import clique
 from flask import Flask, session, request, render_template, redirect, url_for, Response
 
-
 api_key = "7CA772628D17EB61985E3FBF61D124B6"
 
 urlfriend = "http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}&relationship=friend"
@@ -110,83 +109,6 @@ def byteify(input):
         return input.encode('utf-8')
     else:
         return input
-
-def createBD(user_id):
-    cursor = db[user_id]
-    cursor.insert_one({"user_id":user_id})
-    friends = "http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}&relationship=friend".format(api_key,user_id)
-    urlGames = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&steamid={}&format=json".format(api_key,user_id)
-    
-    #pega amigos do usuario
-    responseFriends = requests.get(friends)
-    userFriendList = []
-
-    #trata retorno de friends da steam pq tem 3 nvs
-    userId_ListAux = responseFriends.json()
-    userId_ListAuxNv1 = userId_ListAux.get("friendslist")
-    userId_ListAuxNv2 = userId_ListAuxNv1.get("friends")
-    userId_List = list(userId_ListAuxNv2)
-
-    #pega os jogos do usuario
-    responseGames = requests.get(urlGames)
-    response = responseGames.json()
-
-    usergames_ListAuxNv1 = response.get("response")
-    usergames_ListAuxNv2 = usergames_ListAuxNv1.get("games")
-    usergames_List = usergames_ListAuxNv2
-
-    for i in usergames_List:
-        cursor.update({"user_id":user_id},{"$push":{"game_List":i}})
-    
-    for friend in userId_List:
-        id = friend.get("steamid")
-        userFriendList.append(id)
-    urlList = Parallel(n_jobs=mtp.cpu_count())(delayed(requester)(urlfriend,x)for x in userFriendList)
-
-    cleanFriendList = {}
-
-    for x in urlList:
-        pai = x.keys()[0]
-        try:
-            friends = x.get(pai)
-        except AttributeError, x:
-            # print "key vazia {}".format(x)
-            continue
-
-        
-        userId_friendsListNv1 = friends.get("friendslist")
-        friendsFinalList = []
-        try:
-            userId_friendsListNv2 = userId_friendsListNv1.get("friends")
-            userId_friendsList = list(userId_friendsListNv2)
-            
-            for friends in userId_friendsList:
-                friendsFinalList.append(friends.get("steamid"))
-        except AttributeError, x:
-            # print "key vazia {}".format(x)
-            continue
-        
-        cleanFriendList[pai] = friendsFinalList
-
-    cleanFriendList = byteify(cleanFriendList)
-    FriendGameList = Parallel(n_jobs=mtp.cpu_count())(delayed(requester)(urlGame,x)for x in userFriendList)
-    gamedict = {}
-
-    for games in FriendGameList:
-        key = games.keys()[0]
-        element = games[key]
-        game_List = []
-        try:
-            game_ListAuxNv1 = element.get("response")
-            game_ListAuxNv2 = game_ListAuxNv1.get("games")
-            game_List = game_ListAuxNv2
-        except TypeError:
-            continue
-        gamedict[key] = game_List
-
-
-    gamedict = byteify(gamedict)
-    insertFriendsNV2(user_id,userFriendList,cursor,cleanFriendList,gamedict)
 
 def graph(user_id):
     G = nx.Graph()
@@ -286,7 +208,7 @@ def graph(user_id):
         if FreqName not in games_user:
             frequencia = gameFreq[FreqName]
             aux ={ 
-                "game":FreqName,
+                "name":FreqName,
                 "frequencia":frequencia
             }
             recomendations.append(aux)
@@ -295,25 +217,6 @@ def graph(user_id):
 
 
 
-
-@app.route("/",methods=['POST','GET'])
-@app.route("/index",methods=['POST','GET'])
-def index():
-    return render_template('index.html')
-
-@app.route("/search",methods=['POST','GET'])
-def find():
-    if request.method == "POST":
-        user = request.form.get('user_name')
-        user_steamID = getUserId(user)
-        # createBD(user_steamID)
-        content_page = graph(user_steamID)
-        print content_page
-        return render_template('dashboard.html' ,content_page=content_page)
-    else:
-        return "error"
-
-
-
 if __name__ == "__main__":
-    app.run(debug=False, threaded=True)
+    user_id = getUserId("vnc10")
+    print graph(user_id)
