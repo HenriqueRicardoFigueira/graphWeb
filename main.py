@@ -19,7 +19,6 @@ from joblib import Parallel, delayed
 from networkx.algorithms.approximation import clique
 from flask import Flask, session, request, render_template, redirect, url_for, Response
 
-
 api_key = "7CA772628D17EB61985E3FBF61D124B6"
 
 urlfriend = "http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}&relationship=friend"
@@ -97,7 +96,8 @@ def insertFriendsNV2(user_id,friend_list,cursor,friendsNV2,gamelist):
             gamelistaux = gamelist[friendClean]
         except KeyError, x:
             continue
-        cursor.update({"user_id":user_id},{"$push":{"friend_List":{"user_id":friendClean,"friend_List":friendsaux,"game_List":gamelistaux}}})
+        k = cursor.update({"user_id":user_id},{"$push":{"friend_List":{"user_id":friendClean,"friend_List":friendsaux,"game_List":gamelistaux}}})
+        print k
 
 #limpar json
 def byteify(input):
@@ -112,8 +112,10 @@ def byteify(input):
         return input
 
 def createBD(user_id):
+    print user_id
+
     cursor = db[user_id]
-    cursor.insert_one({"user_id":user_id})
+    
     friends = "http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}&relationship=friend".format(api_key,user_id)
     urlGames = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&steamid={}&format=json".format(api_key,user_id)
     
@@ -122,11 +124,15 @@ def createBD(user_id):
     userFriendList = []
 
     #trata retorno de friends da steam pq tem 3 nvs
-    userId_ListAux = responseFriends.json()
-    userId_ListAuxNv1 = userId_ListAux.get("friendslist")
-    userId_ListAuxNv2 = userId_ListAuxNv1.get("friends")
-    userId_List = list(userId_ListAuxNv2)
-
+    try:
+        userId_ListAux = responseFriends.json()
+        userId_ListAuxNv1 = userId_ListAux.get("friendslist")
+        userId_ListAuxNv2 = userId_ListAuxNv1.get("friends")
+        userId_List = list(userId_ListAuxNv2)
+    except:
+        db[user_id].drop({})
+        return redirect("/private")
+    
     #pega os jogos do usuario
     responseGames = requests.get(urlGames)
     response = responseGames.json()
@@ -135,12 +141,19 @@ def createBD(user_id):
     usergames_ListAuxNv2 = usergames_ListAuxNv1.get("games")
     usergames_List = usergames_ListAuxNv2
 
+    if usergames_List == []:
+        db[user_id].drop({})
+        return redirect("/private")
+
+    cursor.insert_one({"user_id":user_id})
+
     for i in usergames_List:
         cursor.update({"user_id":user_id},{"$push":{"game_List":i}})
     
     for friend in userId_List:
         id = friend.get("steamid")
         userFriendList.append(id)
+    
     urlList = Parallel(n_jobs=mtp.cpu_count())(delayed(requester)(urlfriend,x)for x in userFriendList)
 
     cleanFriendList = {}
@@ -278,7 +291,7 @@ def graph(user_id):
 
     gameFreqAux = []
     for k in gameList:
-        if gameFreq[k] > 1:
+        if gameFreq[k] > 3:
             gameFreqAux.append(k)
 
     recomendations = []
@@ -299,21 +312,80 @@ def graph(user_id):
 @app.route("/",methods=['POST','GET'])
 @app.route("/index",methods=['POST','GET'])
 def index():
-    return render_template('index.html')
+    if request.method == "GET":
+        return render_template('index.html')
 
 @app.route("/search",methods=['POST','GET'])
 def find():
     if request.method == "POST":
         user = request.form.get('user_name')
         user_steamID = getUserId(user)
-        # createBD(user_steamID)
-        content_page = graph(user_steamID)
-        print content_page
-        return render_template('dashboard.html',content_page=content_page)
+
+        cursor = db[user_steamID].find({})
+        if list(cursor) != []:
+            return redirect("/graph/{}".format(user_steamID))
+        else:
+            return redirect("/createDB/{}".format(user_steamID))
     else:
-        return "error"
+        return redirect("/")
+
+@app.route("/createDB/<string:user_id>",methods=['POST','GET'])
+def dbCreator(user_id):
+    if request.method == "GET":
+        createBD(user_id)
+        return redirect("/graph/{}".format(user_id))
+    else:
+        return redirect("/")
 
 
+
+@app.route("/graph/<string:user_id>",methods=['POST','GET'])
+def graphMaker(user_id):
+    if request.method == "GET":
+        cursor = db[user_id].find({})
+        if list(cursor) != []:
+            content_page = graph(user_id)
+            return render_template('dashboard.html',content_page=content_page)
+        else:
+            return redirect("/private")
+    else:
+        return redirect("/")
+
+@app.route("/private",methods=['POST','GET'])
+def private():
+    if request.method == "GET":
+        return render_template("private.html")
+    else:
+        return redirect("/")
+
+@app.route("/plot/<string:user_id>",methods=['POST','GET'])
+def plot(user_id):
+    if request.method == "GET":
+        user_friendList = db[user_id].find({"user_id":user_id},{"friend_List.user_id":1,"_id":0})
+        user_friendList =  list(user_friendList)[0]
+        content_page = []
+        listF = []
+        for x in user_friendList.get("friend_List"):
+            listF.append(x.get("user_id"))
+
+        aux1 = {
+            "id":user_id,
+            "friend_List":listF,
+            "pai":True
+        }
+        content_page.append(aux1)
+        itemsFriends = []
+        for item in listF:
+            friends = getbffList(item,user_id)
+            aux = {
+                "id":item,
+                "friend_List":friends
+            }
+            itemsFriends.append(aux)
+        content_page.append(itemsFriends)
+        
+
+        return render_template('ploty.html',content_page=content_page)
 
 if __name__ == "__main__":
     app.run(debug=False, threaded=False)

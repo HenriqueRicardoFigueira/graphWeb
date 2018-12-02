@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+ <meta charset="utf-8">
+ <meta http-equiv="X-UA-Compatible" content="IE=edge">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Graph Social Network - Steam </title>
+ <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+ <link href="{{ url_for('static', filename='css/vis-network.min.css') }}" rel="stylesheet">
+ <link rel="shortcut icon" href="{{ url_for('static', filename='database.ico') }}">
+ <style type="text/css">
+    html, body {
+        font: 11pt arial;
+    }
+
+    h1 {
+        font-size: 150%;
+        margin: 5px 0;
+    }
+
+    h2 {
+        font-size: 100%;
+        margin: 5px 0;
+    }
+
+    table.view {
+        width: 100%;
+    }
+
+    table td {
+        vertical-align: top;
+    }
+
+    table table {
+        background-color: #f5f5f5;
+        border: 1px solid #e5e5e5;
+    }
+
+    table table td {
+        vertical-align: middle;
+    }
+
+    input[type=text], pre {
+        border: 1px solid lightgray;
+    }
+
+    pre {
+        margin: 0;
+        padding: 5px;
+        font-size: 10pt;
+    }
+
+    #network {
+        width: 100%;
+        height: 766px;
+        border: 1px solid lightgray;
+    }
+</style>
+ <script type="text/javascript">
+        var nodes, edges, network;
+        var pai = JSON.parse('{{content_page[0] | tojson | safe}}');
+        var friends = pai["friend_List"];
+        var friend = JSON.parse('{{content_page[1] | tojson | safe}}');
+        var edgescount = 0*1;
+        // convenience method to stringify a JSON object
+        function toJSON(obj) {
+            return JSON.stringify(obj, null, 4);
+        }
+
+        function removeEdge() {
+            try {
+                edges.remove({id: document.getElementById('edge-id').value});
+            }
+            catch (err) {
+                alert(err);
+            }
+        }
+
+        function draw() {
+            // create an array with nodes
+            nodes = new vis.DataSet();
+            /*[
+                {id: '1', label: 'Node 1'},
+                {id: '2', label: 'Node 2'},
+                {id: '3', label: 'Node 3'},
+                {id: '4', label: 'Node 4'},
+                {id: '5', label: 'Node 5'}
+            ]*/
+            nodesContent = []
+            nodesContent.push({id: pai["id"], label: '', color:'rgb(255, 102, 0)'});
+            for  (var x in friends){
+                nodesContent.push({id: friends[x], label: ''});
+            }
+            
+            nodes.add(nodesContent);
+                        
+
+            // create an array with edges
+            edges = new vis.DataSet();
+            /*[
+                {id: '1', from: '1', to: '2'},
+                {id: '2', from: '1', to: '3'},
+                {id: '3', from: '2', to: '4'},
+                {id: '4', from: '2', to: '5'}
+            ]*/
+            edgesContent = []
+            for (var x in friends){
+                edgesContent.push({id:edgescount, from: pai["id"], to: friends[x]});
+                edgescount += 1;
+            }
+            
+            for (var k in friend){
+                id = friend[k]["id"]
+                friendsnv2 = friend[k]["friend_List"]
+                for (var n in friendsnv2){
+                    if (friends.includes(friendsnv2[n])){
+                        edgesContent.push({id:edgescount, from: id, to: friendsnv2[n]});
+                        edgescount += 1;
+                    }
+                }
+            }
+            edges.add(edgesContent);
+            // create a network
+            var container = document.getElementById('network');
+            var data = {
+                nodes: nodes,
+                edges: edges
+            };
+            // var options = {
+            //     "edges": {
+            //         "smooth": {
+            //         "forceDirection": "none",
+            //         "roundness": 0.1
+            //         }
+            //     },
+            //     "physics": {
+            //         "forceAtlas2Based": {
+            //         "springLength": 100,
+            //         "springConstant": 0.03
+            //         },
+            //         "maxVelocity": 18,
+            //         "minVelocity": 0.75,
+            //         "solver": "forceAtlas2Based"
+            //     }
+            // }
+            
+            var options = {
+                "edges": {
+                    "smooth": {
+                    "forceDirection": "none"
+                    }
+                },
+                "physics": {
+                    "forceAtlas2Based": {
+                    "gravitationalConstant": -18,
+                    "centralGravity": 0.03,
+                    "springLength": 100
+                    },
+                    "minVelocity": 0.75,
+                    "solver": "forceAtlas2Based"
+                }
+            }
+            network = new vis.Network(container, data, options);
+            
+            
+        }
+</script>
+
+</head>
+<body style="padding-top: 70px" onload="draw();">
+    <!-- Modal -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+         <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+           <span class="sr-only">Toggle navigation</span>
+           <span class="icon-bar"></span>
+           <span class="icon-bar"></span>
+           <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/">Steam Network</a>
+         </div>
+         <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+
+          </ul>
+         </div>
+        </div>
+    </nav>
+    <div id="main" class="container-fluid">
+        <div id="main" class="container-fluid">
+            <div id="top" class="row">
+                <div class="col-md-2">
+                </div>
+             
+                <div class="col-md-8">
+                    <form action="/search" method="POST">    
+                        <div class="input-group h2">
+                            <span class="input-group-addon" id="sizing-addon2">Steam Account Name</span>
+                            <input name="user_name" class="form-control" id="search" type="text" placeholder="Pesquisar Steam Account">
+                            <span class="input-group-btn">
+                                <button class="btn btn-secondary" type="submit">
+                                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                                </button>
+                            </span>
+                        </div>
+                    </form>
+                </div>
+             
+                <div class="col-md-2">
+                </div>
+                
+            </div> <!-- /#top -->
+        
+            <hr />
+            
+            <div class="col-md-12" id="network"></div>
+            <pre id="eventSpan"></pre>
+            <div id="bottom" class="row">
+                <div class="col-md-12">             
+                </div>
+            </div> <!-- /#bottom -->
+        </div>  <!-- /#main -->
+    </div>
+
+
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vis.js') }}"></script>
+
+
+</body>
+</html>

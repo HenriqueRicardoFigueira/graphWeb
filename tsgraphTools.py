@@ -1,33 +1,28 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+#!/usr/bin/python3
+import json
+import requests
 import unicodedata
 import requests
 import json
 import bsonjs
 import datetime,time
 import multiprocessing as mtp
-import networkx as nx
-import Tkinter as tk
-import matplotlib.pyplot as plt
-import networkx.drawing
 import operator
-from graph_tool.all import *
+from math import *
 from itertools import chain
 from bson.json_util import dumps, loads
 from bson.raw_bson import RawBSONDocument
 from pymongo import MongoClient
 from joblib import Parallel, delayed
-from networkx.algorithms.approximation import clique
-from flask import Flask, session, request, render_template, redirect, url_for, Response
+from pymongo import MongoClient
+from graph_tool.all import *
+import random
+
 
 api_key = "7CA772628D17EB61985E3FBF61D124B6"
 
 urlfriend = "http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}&relationship=friend"
 urlGame =   "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&steamid={}&format=json"
-
-
-app = Flask(__name__)
-app.secret_key = 'M@rekdsd*&6465445646asd!#$%'
 
 #banco config
 client = MongoClient('localhost', 27017)
@@ -112,10 +107,16 @@ def byteify(input):
         return input
 
 def graph(user_id):
-    G = nx.Graph()
+    # G = nx.Graph()
+    g = Graph(directed=False)
+    v_prop = g.new_vertex_property("string")
+    name_v_map = {}
 
     #cria pai
-    G.add_node(user_id)
+    v1 = g.add_vertex()
+    v_prop[v1] = user_id
+    name_v_map[user_id] = v1
+    # G.add_node(user_id)
 
 
     booking = dumps(db[user_id].find({},{"friend_List.user_id":1,"_id":0}))
@@ -123,101 +124,53 @@ def graph(user_id):
     friendsnv1 = booking2[0].get("friend_List")
 
     cleanFriends = []
+    
     for node in friendsnv1:
         id = node.get("user_id")
         cleanFriends.append(id)
 
     for node in cleanFriends:
-        G.add_node(node)
-        G.add_edge(user_id, node)
+        # G.add_node(node)
+        
+        v = g.add_vertex()
+        v_prop[v] = node
+        name_v_map[node] = v
+        
+        # G.add_edge(user_id, node)
+        g.add_edge(name_v_map[user_id], name_v_map[node])
 
     # print len(cleanFriends)
 
     for id in cleanFriends:
-
         userlistFriend = getbffList(id,user_id)
-
+        
         #for node in userlistFriend:
             #G.add_node(node)
 
         # print userlistFriend
+
         for node in userlistFriend:
             if node in cleanFriends:
-                G.add_edge(id, node)
+                # G.add_edge(id,node)
+                g.add_edge(name_v_map[user_id], name_v_map[node])
 
-    aux = {}
-    for (node, val) in G.degree():
-        aux[node] = val
+    # pos = arf_layout(g)
+    # graph_draw(g, pos=pos, vertex_fill_color="blue", edge_color="black", output="blockmodel.pdf", output_size=(300, 300))
 
+    # graph_draw(g, vertex_fill_color="blue", edge_color="black", output="blockmodel.pdf")
 
-    sorted_x = sorted(aux.items(), key=operator.itemgetter(1))
+    # pos = triangulation(np.random.random((1000,2)))
+    # pos = arf_layout(g)
+    # graph_draw(g, pos=pos, output="rewire_orig.pdf", output_size=(300, 300))
 
-    sort = sorted_x[-11:-1]
+    # pos = sfdp_layout(g, cooling_step=0.75, epsilon=1e-15)
+    # graph_draw(g, pos=pos, output_size=(300,300), output="complete.pdf")
 
-    sort_aux  = []
-    for item in sort:
-        sort_aux.append(item[0])
-
-    x = sort_aux
-
-    x = byteify(x)
-    gamesP = {}
-
-    for id in x:
-        aux = getgameList(id,user_id)
-        if aux != None:
-            games = []
-            for game in aux:
-                x = game.get("appid")
-                games.append(x)
-            gamesP[id] = games
-
-
-    gameList = []
-    gameFreq = {}
-
-    for id in gamesP.keys():
-        user_list_games = gamesP.get(id)
-        for game_user in user_list_games:
-            if game_user in gameList:
-                gameFreq[game_user] = gameFreq[game_user]+1
-            else:
-                gameFreq[game_user] = 1
-                gameList.append(game_user)
-
-    user_gamesAux = db[user_id].find({"user_id":user_id},{"game_List":1,"_id":0})
-
-    user_gamesAuxNV1 = dumps(user_gamesAux)
-    user_gamesAuxNV2 = loads(user_gamesAuxNV1)
-
-    user_gamesAuxNV2 = byteify(user_gamesAuxNV2)[0]
-
-    user_gamesAuxNV2 = user_gamesAuxNV2.get("game_List")
-
-    games_user = []
-    for game in user_gamesAuxNV2:
-        x = game.get("appid")
-        games_user.append(x)
-
-    gameFreqAux = []
-    for k in gameList:
-        if gameFreq[k] > 1:
-            gameFreqAux.append(k)
-
-    recomendations = []
-    for FreqName in gameFreqAux:
-        if FreqName not in games_user:
-            frequencia = gameFreq[FreqName]
-            aux ={ 
-                "name":FreqName,
-                "frequencia":frequencia
-            }
-            recomendations.append(aux)
-    
-    return recomendations
-
+    points = random.randint(2,500) * 4
+    g, pos = geometric_graph(points, 0.3)
+    graph_draw(g, pos=pos, output_size=(300,300), output="geometric.pdf")
 
 
 if __name__ == "__main__":
     user_id = getUserId("vnc10")
-    print graph(user_id)
+    graph(user_id)
