@@ -7,7 +7,6 @@ import bsonjs
 import datetime,time
 import multiprocessing as mtp
 import networkx as nx
-import Tkinter as tk
 import matplotlib.pyplot as plt
 import networkx.drawing
 import operator
