@@ -7,7 +7,6 @@ import bsonjs
 import datetime,time
 import multiprocessing as mtp
 import networkx as nx
-import matplotlib.pyplot as plt
 import networkx.drawing
 import operator
 from itertools import chain
@@ -15,7 +14,6 @@ from bson.json_util import dumps, loads
 from bson.raw_bson import RawBSONDocument
 from pymongo import MongoClient
 from joblib import Parallel, delayed
-from networkx.algorithms.approximation import clique
 from flask import Flask, session, request, render_template, redirect, url_for, Response
 
 api_key = "7CA772628D17EB61985E3FBF61D124B6"
