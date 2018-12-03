@@ -5,3 +5,4 @@ pymongo==3.7.2
 matplotlib==2.1.1
 joblib==0.12.5
 networkx==2.2
+gunicorn==19.7.1
